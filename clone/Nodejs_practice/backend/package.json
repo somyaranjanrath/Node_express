@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "node js complete backend course",
+  "keywords": [
+    "node",
+    "js"
+  ],
+  "license": "ISC",
+  "author": "somya",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js",
+    "mongo-express": "ME_CONFIG_BASICAUTH_USERNAME=\"\" ME_CONFIG_BASICAUTH_PASSWORD=\"custom\" ME_CONFIG_MONGODB_ENABLE_ADMIN=true npx -y mongo-express@1.0.0 -U mongodb://127.0.0.1:27017/"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^18.0.7",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.11.2",
+    "nodemon": "^1.19.4"
+  }
+}
