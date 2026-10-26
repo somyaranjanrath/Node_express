@@ -10,10 +10,12 @@ const todo_schema=new mongoose.Schema({
         required:true
     },
     createdBy:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"user",
+        type:String,
         required:true
-
+    },
+    userId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"user"
     }
 },{
     timestamps:true

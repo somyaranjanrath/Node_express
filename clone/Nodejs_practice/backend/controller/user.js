@@ -1,18 +1,48 @@
 import User from "../models/user.js";
 import Activity from "../models/activity.js";
+import Access, { getRoleActivities } from "../models/access.js";
+import ActivityLog, { logUserActivity } from "../models/activityLog.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
     try {
         const { username, email, password, role } = req.body;
+
+        if (!username || !email || !password) {
+            return res.status(400).json({ error: "Username, email, and password are required" });
+        }
+
+        // Check if username or email is already registered so ID remains unique and constant
+        const existingUser = await User.findOne({
+            $or: [{ email }, { username }]
+        });
+        if (existingUser) {
+            const conflictField = existingUser.email === email ? "Email" : "Username";
+            return res.status(400).json({ error: `${conflictField} is already registered` });
+        }
+
         const hashpassword = await bcrypt.hash(password, 6);
+        const userRole = role ? role.toLowerCase() : "user";
         const user = await User.create({
             username,
             email,
             password: hashpassword,
-            role: role ? role.toLowerCase() : "user"
+            role: userRole
         });
+
+        // Automatically store permissions in the access collection
+        await Access.findOneAndUpdate(
+            { username: user.username },
+            {
+                userId: user._id,
+                username: user.username,
+                role: user.role,
+                activities: getRoleActivities(user.role)
+            },
+            { upsert: true, returnDocument: 'after' }
+        );
+
         return res.status(201).json({ message: "signup successfully", user });
     } catch (error) {
         console.log(error);
@@ -104,6 +134,18 @@ export const login = async (req, res) => {
             sessionDuration: "Session in progress"
         });
 
+        // Log LOGIN activity for this session
+        await logUserActivity({
+            sessionId: activity._id,
+            userId: user._id,
+            username: user.username,
+            role: user.role,
+            action: "LOGIN",
+            details: `User '${user.username}' logged in successfully`,
+            endpoint: req.originalUrl || "/api/user/login",
+            method: "POST"
+        });
+
         const token = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_SECRET
@@ -179,6 +221,18 @@ export const logout = async (req, res) => {
         activeSession.sessionDuration = formatDuration(activeSession.loginTime, logoutTime);
         await activeSession.save();
 
+        // Log LOGOUT activity for this session
+        await logUserActivity({
+            sessionId: activeSession._id,
+            userId: user._id,
+            username: user.username,
+            role: user.role,
+            action: "LOGOUT",
+            details: `User '${user.username}' logged out (Session duration: ${activeSession.sessionDuration})`,
+            endpoint: req.originalUrl || "/api/user/logout",
+            method: "POST"
+        });
+
         return res.status(200).json({
             message: "logout successfully",
             activity: {
@@ -188,6 +242,117 @@ export const logout = async (req, res) => {
                 logoutTime: activeSession.logoutTime,
                 sessionDuration: activeSession.sessionDuration
             }
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+export const remove_user = async (req, res) => {
+    try {
+        const { username, email, id, userId } = req.body || {};
+        const paramId = req.params?.id;
+        const targetId = paramId || id || userId;
+
+        const cleanUsername = typeof username === "string" ? username.trim() : null;
+        const cleanEmail = typeof email === "string" ? email.trim() : null;
+
+        if (!cleanUsername && !cleanEmail && !targetId) {
+            return res.status(400).json({ error: "Please provide username, email, or user id to remove user" });
+        }
+
+        let userToFind = null;
+        if (targetId) {
+            userToFind = await User.findById(targetId);
+        } else if (cleanUsername && cleanEmail) {
+            userToFind = await User.findOne({
+                $or: [
+                    { username: { $regex: new RegExp(`^${cleanUsername}$`, "i") } },
+                    { email: { $regex: new RegExp(`^${cleanEmail}$`, "i") } }
+                ]
+            });
+        } else if (cleanUsername) {
+            userToFind = await User.findOne({
+                username: { $regex: new RegExp(`^${cleanUsername}$`, "i") }
+            });
+        } else if (cleanEmail) {
+            userToFind = await User.findOne({
+                email: { $regex: new RegExp(`^${cleanEmail}$`, "i") }
+            });
+        }
+
+        if (!userToFind) {
+            const searchedFor = cleanUsername ? `username '${cleanUsername}'` : cleanEmail ? `email '${cleanEmail}'` : `id '${targetId}'`;
+            return res.status(404).json({ error: `User with ${searchedFor} not found` });
+        }
+
+        if (req.user && userToFind._id.toString() === req.user._id.toString()) {
+            return res.status(400).json({ error: "Admin cannot delete their own active account." });
+        }
+
+        const user = await User.findByIdAndDelete(userToFind._id);
+
+        // Remove access permissions for this user
+        await Access.deleteOne({ username: user.username });
+
+        // Log DELETE_USER activity
+        await logUserActivity({
+            req,
+            action: "DELETE_USER",
+            details: `Admin '${req.user?.username}' deleted user '${user.username}' (${user.email})`
+        });
+
+        return res.status(200).json({
+            message: "User removed successfully",
+            user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+export const delete_user = remove_user;
+
+export const get_Access = async (req, res) => {
+    try {
+        const { username } = req.query;
+        let query = {};
+        if (username) {
+            query.username = { $regex: new RegExp(`^${username.trim()}$`, "i") };
+        }
+        const accessList = await Access.find(query).sort({ role: 1, username: 1 });
+        return res.status(200).json({ message: "access list fetched successfully", access: accessList });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+export const get_ActivityLogs = async (req, res) => {
+    try {
+        const { sessionId, username, action } = req.query;
+        let query = {};
+        if (sessionId) {
+            query.sessionId = sessionId;
+        }
+        if (username) {
+            query.username = { $regex: new RegExp(`^${username.trim()}$`, "i") };
+        }
+        if (action) {
+            query.action = { $regex: new RegExp(`^${action.trim()}$`, "i") };
+        }
+        const logs = await ActivityLog.find(query).sort({ createdAt: -1 });
+        return res.status(200).json({
+            message: "activity logs fetched successfully",
+            count: logs.length,
+            logs
         });
     } catch (error) {
         console.log(error);

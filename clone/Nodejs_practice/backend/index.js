@@ -16,9 +16,11 @@ dotenv.config();
 connectdb();
 
 //routing
-app.use(express.json())
-app.use("/api",routes)
-app.use("/api",user)
+app.use(express.json());
+app.use("/api", routes);
+app.use("/api", user);
+app.use("/", routes);
+app.use("/", user);
 
 const port = process.env.PORT
 console.log(port);

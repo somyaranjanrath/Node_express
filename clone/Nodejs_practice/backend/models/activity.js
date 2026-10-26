@@ -30,6 +30,6 @@ const activitySchema = new mongoose.Schema({
     timestamps: true
 });
 
-const Activity = mongoose.model("activity", activitySchema, "activity");
+const Activity = mongoose.model("session_logs", activitySchema, "session_logs");
 
 export default Activity;

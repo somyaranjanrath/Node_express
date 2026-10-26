@@ -1,35 +1,36 @@
 import Todo from "../models/todo.js"
+import { logUserActivity } from "../models/activityLog.js";
 
 export const fetch = async(req,res)=>{
-    //console.log("Welcome.....")
-    // res.status(200).json({message:"Welcome to node.js course ..... fetch the data"})
-
     try {
-        const todos = await Todo.find().populate("createdBy","username")
-        res.status(200).json({message:"todos....",todos}) 
+        const todos = await Todo.find().sort({ createdAt: -1 });
+        res.status(200).json({ message: "todos....", todos });
     } catch (error) {
-        console.log(error)
-        res.status(500).json({error:error.message})
+        console.log(error);
+        res.status(500).json({ error: error.message });
     }
 }
 
 export const create = async(req,res)=>{
-    // const id = req.body.id;   //old technique/approch
-    // const name = req.body.name;
-    // const address = req.body.address;
-
-    // const {id,name,address} = req.body
-    // console.log(id,name,address);
-
-    // res.status(200).json({message:"Posting the data......",id,name,address})
-
-    //error handling
     try {
         const { title, description } = req.body;
         if (!title || !description) {
             return res.status(400).json({ error: "Title and description are required" });
         }
-        const todo = await Todo.create({ title, description, createdBy: req.user.id });
+        const todo = await Todo.create({
+            title,
+            description,
+            createdBy: req.user.username,
+            userId: req.user._id || req.user.id
+        });
+
+        // Record activity in current session
+        await logUserActivity({
+            req,
+            action: "CREATE_TODO",
+            details: `Created todo '${todo.title}'`
+        });
+
         return res.status(201).json({ message: "Todo stored", todo });
     } catch (error) {
         console.log(error);
@@ -38,8 +39,6 @@ export const create = async(req,res)=>{
 }
 
 export const update = async(req,res)=>{
-    //console.log("Welcome.....")
-    // res.status(200).json({message:"Updating the data......"})
     try {
         const {id}=req.params;
         const {title,description}=req.body
@@ -48,27 +47,40 @@ export const update = async(req,res)=>{
             id,
             {title,description},
             {new:true}
-        )
-        res.status(201).json({message:"Todo Updated", todo})
+        );
 
+        if (todo) {
+            await logUserActivity({
+                req,
+                action: "UPDATE_TODO",
+                details: `Updated todo '${todo.title}' (ID: ${id})`
+            });
+        }
+
+        res.status(201).json({message:"Todo Updated", todo});
     } catch (error) {
-        console.log(error)
-        res.status(500).json({error:error.message})
-
+        console.log(error);
+        res.status(500).json({error:error.message});
     }
 }
 
 export const remove = async(req,res)=>{
-    //console.log("Welcome.....")
     try {
         const {id}=req.params;
 
-        const todo = await Todo.findByIdAndDelete(
-            id
-        )
-        res.status(200).json({message:"Deleting the todo data......"})
+        const todo = await Todo.findByIdAndDelete(id);
+
+        if (todo) {
+            await logUserActivity({
+                req,
+                action: "DELETE_TODO",
+                details: `Deleted todo '${todo.title}' (ID: ${id})`
+            });
+        }
+
+        res.status(200).json({message:"Deleting the todo data......"});
     } catch (error) {
-        console.log(error)
-        res.status(500).json({error:error.message})
+        console.log(error);
+        res.status(500).json({error:error.message});
     }
 }
