@@ -4,6 +4,14 @@ import { logUserActivity } from "../models/activityLog.js";
 export const fetch = async(req,res)=>{
     try {
         const todos = await Todo.find().sort({ createdAt: -1 });
+
+        // Record read-only activity
+        await logUserActivity({
+            req,
+            action: "FETCH_TODOS",
+            details: `Fetched ${todos.length} todo(s)`
+        });
+
         res.status(200).json({ message: "todos....", todos });
     } catch (error) {
         console.log(error);

@@ -34,4 +34,31 @@ const auth = async (req, res, next) => {
     }
 };
 
+export const optionalAuth = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization || req.headers.Authorization;
+        if (!authHeader) {
+            return next();
+        }
+        const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const user = await User.findById(decoded.id);
+        if (user) {
+            const activeSession = await Activity.findOne({
+                userId: user._id,
+                logoutTime: "Session in progress"
+            }).sort({ loginTime: -1 });
+
+            if (activeSession) {
+                req.sessionId = activeSession._id;
+            }
+            req.user = user;
+        }
+        next();
+    } catch (error) {
+        next();
+    }
+};
+
 export default auth;

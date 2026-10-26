@@ -53,6 +53,14 @@ export const signup = async (req, res) => {
 export const get_User = async (req, res) => {
     try {
         const users = await User.find().select("username email password role");
+
+        // Record read-only activity
+        await logUserActivity({
+            req,
+            action: "VIEW_USERS",
+            details: `Viewed user list (${users.length} users)`
+        });
+
         return res.status(200).json({ message: "users fetched successfully", users });
     } catch (error) {
         console.log(error);
@@ -63,6 +71,14 @@ export const get_User = async (req, res) => {
 export const get_Activities = async (req, res) => {
     try {
         const activities = await Activity.find().sort({ loginTime: -1 });
+
+        // Record read-only activity
+        await logUserActivity({
+            req,
+            action: "VIEW_SESSION_LOGS",
+            details: `Viewed session logs (${activities.length} sessions)`
+        });
+
         return res.status(200).json({ message: "activities fetched successfully", activities });
     } catch (error) {
         console.log(error);
@@ -328,6 +344,14 @@ export const get_Access = async (req, res) => {
             query.username = { $regex: new RegExp(`^${username.trim()}$`, "i") };
         }
         const accessList = await Access.find(query).sort({ role: 1, username: 1 });
+
+        // Record read-only activity
+        await logUserActivity({
+            req,
+            action: "VIEW_ACCESS_LIST",
+            details: `Viewed role-based access list (${accessList.length} records)`
+        });
+
         return res.status(200).json({ message: "access list fetched successfully", access: accessList });
     } catch (error) {
         console.log(error);
