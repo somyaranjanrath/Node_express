@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  username  String    @unique
+  email     String    @unique
+  password  String
+  role            String    @default("user")
+  todos_performed Int       @default(0)
+  createdAt       DateTime? @default(now())
+  updatedAt       DateTime? @updatedAt
+  todos           Todo[]
+
+  @@map("users")
+}
+
+model RolesBasedAccess {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String?   @db.ObjectId
+  username    String    @unique
+  role        String
+  can_perform String
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  @@map("roles_based_access")
+}
+
+model SessionLog {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @db.ObjectId
+  username        String
+  role            String
+  loginTime       DateTime? @default(now())
+  logoutTime      Json?
+  sessionDuration String    @default("Session in progress")
+  createdAt       DateTime? @default(now())
+  updatedAt       DateTime? @updatedAt
+
+  @@map("session_logs")
+}
+
+model ActivityLog {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId String?   @db.ObjectId
+  userId    String?   @db.ObjectId
+  username  String
+  role      String
+  action    String
+  details   String    @default("")
+  endpoint  String    @default("")
+  method    String    @default("")
+  status    String    @default("SUCCESS")
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@map("activity_logs")
+}
+
+model Todo {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  createdBy   String
+  userId      String?   @db.ObjectId
+  user        User?     @relation(fields: [userId], references: [id])
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  @@map("todos")
+}

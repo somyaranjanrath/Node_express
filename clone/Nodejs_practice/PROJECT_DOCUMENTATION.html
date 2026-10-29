@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Node.js & Express Backend - Project Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #eff6ff;
+      --secondary: #0f172a;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --card-bg: #ffffff;
+      --badge-admin: #dc2626;
+      --badge-user: #2563eb;
+      --badge-success: #16a34a;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--text);
+      background-color: var(--bg-alt);
+      line-height: 1.65;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 40px 24px 100px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      padding: 48px 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.4) 0%, rgba(37, 99, 235, 0) 70%);
+      border-radius: 50%;
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: rgba(37, 99, 235, 0.3);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #93c5fd;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      max-width: 700px;
+      margin-bottom: 24px;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      font-size: 13px;
+      color: #cbd5e1;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 20px;
+    }
+
+    .header-meta strong {
+      color: #ffffff;
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--primary);
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--secondary);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #334155;
+      margin: 24px 0 12px;
+    }
+
+    p {
+      margin-bottom: 14px;
+      color: #475569;
+    }
+
+    ul, ol {
+      margin-bottom: 16px;
+      padding-left: 24px;
+      color: #475569;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 18px 0 24px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: var(--secondary);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: #f8fafc;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 18px 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 16px 0 24px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-get { background: #e0f2fe; color: #0284c7; }
+    .badge-post { background: #dcfce7; color: #16a34a; }
+    .badge-put { background: #fef3c7; color: #d97706; }
+    .badge-delete { background: #fee2e2; color: #dc2626; }
+    .badge-admin { background: #fee2e2; color: #b91c1c; }
+    .badge-user { background: #e0e7ff; color: #4338ca; }
+
+    .toc {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+    }
+
+    .toc-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--secondary);
+      margin-bottom: 10px;
+    }
+
+    .toc ul {
+      margin-bottom: 0;
+      list-style-type: none;
+      padding-left: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 8px 16px;
+    }
+
+    .toc a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .toc a:hover {
+      text-decoration: underline;
+    }
+
+    .alert {
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 18px 0;
+      font-size: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .alert-info {
+      background-color: #eff6ff;
+      border-left: 4px solid var(--primary);
+      color: #1e40af;
+    }
+
+    .alert-success {
+      background-color: #f0fdf4;
+      border-left: 4px solid #16a34a;
+      color: #166534;
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff;
+      }
+      .container {
+        padding: 0;
+        max-width: 100%;
+      }
+      .action-bar {
+        display: none;
+      }
+      .card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+        page-break-inside: avoid;
+      }
+      pre, code {
+        background: #f8fafc !important;
+        color: #000 !important;
+        border: 1px solid #ddd;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="action-bar">
+      <button class="btn" onclick="window.print()">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+          <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+        </svg>
+        Print / Save as PDF
+      </button>
+    </div>
+
+    <header>
+      <div class="header-badge">Complete Backend System</div>
+      <h1>Node.js & Express RESTful API Documentation</h1>
+      <p class="subtitle">Complete technical specification, architectural reference, data models, RBAC security, audit logging, and Mongo Express integration for the <code>todo-app</code> backend.</p>
+      <div class="header-meta">
+        <div><strong>Author:</strong> Somya Ranjan Rath</div>
+        <div><strong>Version:</strong> 1.0.0</div>
+        <div><strong>Environment:</strong> Node.js (ESM), Express 5, MongoDB 8</div>
+        <div><strong>Updated:</strong> October 27, 2026</div>
+      </div>
+    </header>
+
+    <div class="toc">
+      <div class="toc-title">Quick Navigation Index</div>
+      <ul>
+        <li><a href="#overview">1. System Overview</a></li>
+        <li><a href="#tech-stack">2. Tech Stack & Dependencies</a></li>
+        <li><a href="#architecture">3. Project Architecture</a></li>
+        <li><a href="#models">4. Database Collections & Schema</a></li>
+        <li><a href="#rbac">5. Authentication & RBAC</a></li>
+        <li><a href="#endpoints">6. API Endpoints Reference</a></li>
+        <li><a href="#logging">7. Session & Activity Audit Logging</a></li>
+        <li><a href="#mongo-express">8. Mongo Express Administration</a></li>
+        <li><a href="#running">9. Setup & Running Instructions</a></li>
+        <li><a href="#troubleshooting">10. Troubleshooting FAQ</a></li>
+      </ul>
+    </div>
+
+    <!-- 1. System Overview -->
+    <section id="overview" class="card">
+      <h2>1. System Overview</h2>
+      <p>This project is a scalable, secure backend service developed using <strong>modern ES Module JavaScript</strong>. It implements complete CRUD operations for todos while establishing an enterprise-grade security perimeter around user management, session lifecycle, and real-time activity auditing.</p>
+      
+      <div class="alert alert-info">
+        <div><strong>Architecture Highlights:</strong> Strict single-active-session policy per user, bcrypt credential hashing, stateless JWT verification, automatic RBAC capability indexing, and embedded web-based database administration.</div>
+      </div>
+    </section>
+
+    <!-- 2. Tech Stack -->
+    <section id="tech-stack" class="card">
+      <h2>2. Technology Stack & Dependencies</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Version</th>
+            <th>Type</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>express</code></td>
+            <td>^5.3.0</td>
+            <td>Core Framework</td>
+            <td>HTTP server, middleware routing, and request/response dispatching.</td>
+          </tr>
+          <tr>
+            <td><code>mongoose</code></td>
+            <td>^9.11.2</td>
+            <td>ODM</td>
+            <td>Schema definitions, validation rules, and MongoDB query execution.</td>
+          </tr>
+          <tr>
+            <td><code>jsonwebtoken</code></td>
+            <td>^9.0.3</td>
+            <td>Security</td>
+            <td>Generates and verifies cryptographic bearer authentication tokens.</td>
+          </tr>
+          <tr>
+            <td><code>bcrypt</code></td>
+            <td>^6.0.0</td>
+            <td>Cryptography</td>
+            <td>Salts and hashes passwords prior to storage in database.</td>
+          </tr>
+          <tr>
+            <td><code>dotenv</code></td>
+            <td>^18.0.7</td>
+            <td>Configuration</td>
+            <td>Loads environment secrets from <code>.env</code> file into <code>process.env</code>.</td>
+          </tr>
+          <tr>
+            <td><code>helmet</code></td>
+            <td>^8.1.0</td>
+            <td>Security</td>
+            <td>HTTP security headers (CSP, HSTS, X-Content-Type-Options, X-Frame-Options).</td>
+          </tr>
+          <tr>
+            <td><code>express-rate-limit</code></td>
+            <td>^7.5.0</td>
+            <td>Protection</td>
+            <td>Brute-force and DDoS rate limiting on authentication routes.</td>
+          </tr>
+          <tr>
+            <td><code>nodemon</code></td>
+            <td>^3.1.9</td>
+            <td>Developer Tool</td>
+            <td>Hot-reloads node server during local development upon file save.</td>
+          </tr>
+          <tr>
+            <td><code>mongo-express</code></td>
+            <td>1.0.0</td>
+            <td>Admin Console</td>
+            <td>Web dashboard hosted on port 8081 for visualizing and inspecting collections.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 3. Architecture -->
+    <section id="architecture" class="card">
+      <h2>3. Project Architecture</h2>
+      <p>Clean separation of concerns adhering to the Controller-Model-Route pattern:</p>
+      <pre>backend/
+├── controller/
+│   ├── controller.js          # Handles todo business logic (fetch, create, update, delete)
+│   └── user.js                # Auth, registration, session management, access listing, audit queries
+├── database/
+│   └── db.js                  # Centralized mongoose connection initialization
+├── middleware/
+│   ├── admin.js               # Enforces admin role and active logged-in session state
+│   └── auth.js                # Validates JWT tokens and resolves user identities
+├── models/
+│   ├── access.js              # roles_based_access schema and role-to-activity definitions
+│   ├── activity.js            # session_logs schema (tracks login, logout, and session durations)
+│   ├── activityLog.js         # activity_logs schema and logUserActivity() helper
+│   ├── todo.js                # todos schema (title, description, createdBy, userId)
+│   └── user.js                # users schema (username, email, password, role)
+├── routes/
+│   ├── route.js               # Todo management routes
+│   └── user.js                # User identity, authentication, access, and audit routes
+├── .env                       # Secrets (PORT, JWT_SECRET, DB_URL)
+├── index.js                   # Main application entry point
+└── package.json               # Manifest & scripts</pre>
+    </section>
+
+    <!-- 4. Database Collections -->
+    <section id="models" class="card">
+      <h2>4. Database Collections & Schema (<code>todo-app</code>)</h2>
+      
+      <h3>1. <code>users</code> Collection</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Constraint</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>_id</code></td><td>ObjectId</td><td>Primary Key</td><td>Auto-generated unique document identifier</td></tr>
+          <tr><td><code>username</code></td><td>String</td><td>Required, Unique</td><td>User's display and login username</td></tr>
+          <tr><td><code>email</code></td><td>String</td><td>Required, Unique</td><td>User's email identifier</td></tr>
+          <tr><td><code>password</code></td><td>String</td><td>Required</td><td>Bcrypt salted and hashed password string</td></tr>
+          <tr><td><code>role</code></td><td>String</td><td>Enum: ['user', 'admin']</td><td>Default: <code>"user"</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>2. <code>roles_based_access</code> Collection</h3>
+      <p>Stores detailed permission capabilities per user and role, automatically populated upon account signup.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>userId</code></td><td>ObjectId</td><td>References <code>users._id</code></td></tr>
+          <tr><td><code>username</code></td><td>String</td><td>Associated account username</td></tr>
+          <tr><td><code>role</code></td><td>String</td><td><code>"admin"</code> or <code>"user"</code></td></tr>
+          <tr><td><code>can_perform</code></td><td>String</td><td>Numbered list of allowed actions and API routes (newline separated)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3. <code>session_logs</code> Collection</h3>
+      <p>Maintains persistent records of user sessions to enforce single active session policies.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>userId</code></td><td>ObjectId</td><td>References <code>users._id</code></td></tr>
+          <tr><td><code>username</code></td><td>String</td><td>Username logged in</td></tr>
+          <tr><td><code>loginTime</code></td><td>Date</td><td>Timestamp when session commenced</td></tr>
+          <tr><td><code>logoutTime</code></td><td>Mixed</td><td>Logout timestamp or <code>"Session in progress"</code></td></tr>
+          <tr><td><code>sessionDuration</code></td><td>String</td><td>Formatted string (e.g. <code>"5 minutes 23 seconds"</code>)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>4. <code>activity_logs</code> Collection</h3>
+      <p>High-fidelity audit log recording all administrative actions, data changes, and access events.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>sessionId</code></td><td>ObjectId</td><td>Linked session from <code>session_logs</code></td></tr>
+          <tr><td><code>userId</code></td><td>ObjectId</td><td>User who performed the event</td></tr>
+          <tr><td><code>action</code></td><td>String</td><td>e.g. <code>LOGIN</code>, <code>LOGOUT</code>, <code>CREATE_TODO</code>, <code>DELETE_USER</code></td></tr>
+          <tr><td><code>details</code></td><td>String</td><td>Readable explanation with affected entity details</td></tr>
+          <tr><td><code>endpoint</code></td><td>String</td><td>Endpoint triggered (e.g. <code>/api/create</code>)</td></tr>
+          <tr><td><code>method</code></td><td>String</td><td>HTTP Verb (<code>POST</code>, <code>GET</code>, <code>DELETE</code>, <code>PUT</code>)</td></tr>
+          <tr><td><code>status</code></td><td>String</td><td>Outcome status: <code>"SUCCESS"</code> or <code>"FAILED"</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3>5. <code>todos</code> Collection</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>title</code></td><td>String</td><td>Task title</td></tr>
+          <tr><td><code>description</code></td><td>String</td><td>Detailed task instructions</td></tr>
+          <tr><td><code>createdBy</code></td><td>String</td><td>Username of administrator who created the todo</td></tr>
+          <tr><td><code>userId</code></td><td>ObjectId</td><td>References creator's <code>users._id</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 5. Authentication & RBAC -->
+    <section id="rbac" class="card">
+      <h2>5. Authentication & Role-Based Access Control</h2>
+      
+      <h3>Security Policies</h3>
+      <ul>
+        <li><strong>Password Encryption:</strong> All passwords pass through <code>bcrypt.hash(password, 6)</code> before hitting the database.</li>
+        <li><strong>Single Login Rule:</strong> A user cannot log in from a second location while their current session is marked <code>"Session in progress"</code>. They must log out first.</li>
+        <li><strong>Active Admin Verification:</strong> Admin routes not only verify the JWT token role, but also query <code>session_logs</code> to ensure the administrator is actively logged in.</li>
+        <li><strong>Self-Deletion Protection:</strong> Administrators are explicitly forbidden from deleting their own active accounts.</li>
+      </ul>
+    </section>
+
+    <!-- 6. API Endpoints -->
+    <section id="endpoints" class="card">
+      <h2>6. API Endpoints Reference</h2>
+      
+      <h3>User & Session Routes</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Authorization</th>
+            <th>Payload / Query</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/user/signup</code></td>
+            <td>Public</td>
+            <td><code>{ username, email, password, role }</code></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/user/login</code></td>
+            <td>Public</td>
+            <td><code>{ username, password }</code></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/user/logout</code></td>
+            <td>Authenticated</td>
+            <td>Bearer Token in Header or <code>{ username }</code> in Body</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/user/get_User</code></td>
+            <td>Optional Auth</td>
+            <td>None (returns user list)</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-delete">DELETE</span></td>
+            <td><code>/api/user/delete_user/:id</code></td>
+            <td><span class="badge badge-admin">Admin</span></td>
+            <td>URL param <code>:id</code> or body <code>{ username, email }</code></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/user/session_logs</code></td>
+            <td>Optional Auth</td>
+            <td>None (returns all sessions sorted newest first)</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/user/roles_based_access</code></td>
+            <td>Optional Auth</td>
+            <td>Optional query: <code>?username=somya</code></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/user/activity_logs</code></td>
+            <td>Optional Auth</td>
+            <td>Filter queries: <code>?sessionId=</code>, <code>?username=</code>, <code>?action=</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Todo CRUD Routes</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Authorization</th>
+            <th>Payload</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-get">GET</span></td>
+            <td><code>/api/Fetch</code></td>
+            <td>Optional Auth</td>
+            <td>None (returns todos sorted by creation date)</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-post">POST</span></td>
+            <td><code>/api/create</code></td>
+            <td><span class="badge badge-admin">Admin</span></td>
+            <td><code>{ title, description }</code></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-put">PUT</span></td>
+            <td><code>/api/update/:id</code></td>
+            <td><span class="badge badge-admin">Admin</span></td>
+            <td><code>{ title, description }</code></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-delete">DELETE</span></td>
+            <td><code>/api/remove/:id</code></td>
+            <td><span class="badge badge-admin">Admin</span></td>
+            <td>None</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 7. Mongo Express -->
+    <section id="mongo-express" class="card">
+      <h2>7. Database Administration (Mongo Express)</h2>
+      <p>Mongo Express is accessible locally at <strong><code>http://localhost:8081</code></strong>. Multiple UI customizations have been applied:</p>
+      
+      <ul>
+        <li><strong>Zero Whitespace Bloat:</strong> Stripped HTML template indentation and overridden <code>white-space: pre-line</code> so cells display compact rows without empty lines.</li>
+        <li><strong>Line-by-Line <code>can_perform</code>:</strong> Permissions are rendered with <code>white-space: pre-wrap !important</code> so each item appears on its own numbered line.</li>
+        <li><strong>Admin-First Sorting:</strong> Default collection view sorts by <code>{ role: 1, username: 1 }</code> ensuring administrators are always positioned above regular users.</li>
+        <li><strong>Optimized Column Widths:</strong> <code>activity_logs</code> and <code>roles_based_access</code> use generous horizontal spacing and monospace formatting for IDs.</li>
+        <li><strong>Full Screen Width:</strong> Utilizes full viewport width without artificial 1170px container margins.</li>
+        <li><strong>Manual Cursor Column Resizing (All Collections):</strong> Users can shrink or expand the size of any table column across all collections manually using the cursor. Includes interactive <code>col-resize</code> grips, real-time dragging guidelines, double-click auto-fit reset, "Reset Column Width" button, click-sort prevention, and persistent storage in <code>localStorage</code>.</li>
+        <li><strong>Light &amp; Dark Mode Toggle:</strong> Top navigation bar includes a toggle button allowing users to switch between Light Mode and a dark slate theme with full persistence in <code>localStorage</code>.</li>
+      </ul>
+    </section>
+
+    <!-- 8. Running Instructions -->
+    <section id="running" class="card">
+      <h2>8. Setup & Running Instructions</h2>
+      
+      <h3>1. Start Local MongoDB Server</h3>
+      <pre>mongod --dbpath /home/cdot/mongodb/data --logpath /home/cdot/mongodb/mongod.log --fork</pre>
+
+      <h3>2. Start the Backend API Server</h3>
+      <pre>cd /home/cdot/Desktop/clone/Nodejs_practice/backend
+npm start</pre>
+      <p>Server starts and listens at <code>http://localhost:4001</code>.</p>
+
+      <h3>3. Start Mongo Express Admin UI</h3>
+      <pre>cd /home/cdot/Desktop/clone/Nodejs_practice/backend
+npm run mongo-express</pre>
+      <p>Access the dashboard at <code>http://localhost:8081</code>.</p>
+    </section>
+
+    <!-- 9. Troubleshooting -->
+    <section id="troubleshooting" class="card">
+      <h2>9. Troubleshooting Guide</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Observed Symptom</th>
+            <th>Underlying Cause</th>
+            <th>Resolution</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>ECONNREFUSED 127.0.0.1:27017</code></td>
+            <td>MongoDB daemon is not running.</td>
+            <td>Run <code>mongod --dbpath /home/cdot/mongodb/data --logpath /home/cdot/mongodb/mongod.log --fork</code>.</td>
+          </tr>
+          <tr>
+            <td><code>User is already logged in</code></td>
+            <td>Prior session was not closed with logout.</td>
+            <td>Issue <code>POST /api/user/logout</code> or update <code>logoutTime</code> in <code>session_logs</code> collection.</td>
+          </tr>
+          <tr>
+            <td><code>Access denied. Admin only...</code></td>
+            <td>Non-admin role or admin is not logged in.</td>
+            <td>Ensure your user account has <code>role: "admin"</code> and you have an active session in <code>session_logs</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </div>
+
+</body>
+</html>

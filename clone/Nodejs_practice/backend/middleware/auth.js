@@ -9,7 +9,7 @@ const auth = async (req, res, next) => {
             return res.status(401).json({ error: "Authorization header is missing" });
         }
         const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
 
         // Verify that the user still exists in the database so createdBy never references a non-existent ID
         const user = await User.findById(decoded.id);
@@ -37,24 +37,45 @@ const auth = async (req, res, next) => {
 export const optionalAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization || req.headers.Authorization;
-        if (!authHeader) {
-            return next();
+        let token = authHeader ? (authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader) : null;
+        if (!token) {
+            token = req.headers['x-access-token'] || req.headers['x-auth-token'] || req.headers['token'] || req.query?.token;
         }
-        const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const user = await User.findById(decoded.id);
-        if (user) {
-            const activeSession = await Activity.findOne({
-                userId: user._id,
-                logoutTime: "Session in progress"
-            }).sort({ loginTime: -1 });
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+                const user = await User.findById(decoded.id);
+                if (user) {
+                    const activeSession = await Activity.findOne({
+                        userId: user._id,
+                        logoutTime: "Session in progress"
+                    }).sort({ loginTime: -1 });
 
-            if (activeSession) {
-                req.sessionId = activeSession._id;
+                    if (activeSession) {
+                        req.sessionId = activeSession._id;
+                    }
+                    req.user = user;
+                    return next();
+                }
+            } catch (err) {
+                // Token invalid or expired, continue to session fallback
             }
-            req.user = user;
         }
+
+        // If no token was provided, check if an active session is currently in progress
+        const activeSession = await Activity.findOne({
+            logoutTime: "Session in progress"
+        }).sort({ loginTime: -1 });
+
+        if (activeSession) {
+            const user = await User.findById(activeSession.userId);
+            if (user) {
+                req.sessionId = activeSession._id;
+                req.user = user;
+            }
+        }
+
         next();
     } catch (error) {
         next();

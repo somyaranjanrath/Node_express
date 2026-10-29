@@ -5,24 +5,33 @@ import ActivityLog, { logUserActivity } from "../models/activityLog.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+const escapeRegex = (str) => {
+    if (typeof str !== "string") return "";
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 export const signup = async (req, res) => {
     try {
-        const { username, email, password, role } = req.body;
+        const { username, email, password, role } = req.body || {};
 
         if (!username || !email || !password) {
             return res.status(400).json({ error: "Username, email, and password are required" });
         }
 
+        if (typeof username !== "string" || typeof email !== "string" || typeof password !== "string") {
+            return res.status(400).json({ error: "Username, email, and password must be valid strings" });
+        }
+
         // Check if username or email is already registered so ID remains unique and constant
         const existingUser = await User.findOne({
-            $or: [{ email }, { username }]
+            $or: [{ email: email.trim() }, { username: username.trim() }]
         });
         if (existingUser) {
-            const conflictField = existingUser.email === email ? "Email" : "Username";
+            const conflictField = existingUser.email === email.trim() ? "Email" : "Username";
             return res.status(400).json({ error: `${conflictField} is already registered` });
         }
 
-        const hashpassword = await bcrypt.hash(password, 6);
+        const hashpassword = await bcrypt.hash(password, 10);
         const userRole = role ? role.toLowerCase() : "user";
         const user = await User.create({
             username,
@@ -38,7 +47,7 @@ export const signup = async (req, res) => {
                 userId: user._id,
                 username: user.username,
                 role: user.role,
-                activities: getRoleActivities(user.role)
+                can_perform: getRoleActivities(user.role)
             },
             { upsert: true, returnDocument: 'after' }
         );
@@ -52,14 +61,16 @@ export const signup = async (req, res) => {
 
 export const get_User = async (req, res) => {
     try {
-        const users = await User.find().select("username email password role");
+        const users = await User.find().select("username email password role todos_performed");
 
-        // Record read-only activity
-        await logUserActivity({
-            req,
-            action: "VIEW_USERS",
-            details: `Viewed user list (${users.length} users)`
-        });
+        // Record read-only activity if user is authenticated or session is active
+        if (req.user || req.sessionId) {
+            await logUserActivity({
+                req,
+                action: "VIEW_USERS",
+                details: `Viewed user list (${users.length} users)`
+            });
+        }
 
         return res.status(200).json({ message: "users fetched successfully", users });
     } catch (error) {
@@ -72,12 +83,14 @@ export const get_Activities = async (req, res) => {
     try {
         const activities = await Activity.find().sort({ loginTime: -1 });
 
-        // Record read-only activity
-        await logUserActivity({
-            req,
-            action: "VIEW_SESSION_LOGS",
-            details: `Viewed session logs (${activities.length} sessions)`
-        });
+        // Record read-only activity if user is authenticated or session is active
+        if (req.user || req.sessionId) {
+            await logUserActivity({
+                req,
+                action: "VIEW_SESSION_LOGS",
+                details: `Viewed session logs (${activities.length} sessions)`
+            });
+        }
 
         return res.status(200).json({ message: "activities fetched successfully", activities });
     } catch (error) {
@@ -103,16 +116,22 @@ const formatDuration = (start, end) => {
 
 export const login = async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password } = req.body || {};
         const identifier = username || email;
 
         if (!identifier || !password) {
             return res.status(400).json({ error: "Username/email and password are required" });
         }
 
+        if (typeof identifier !== "string" || typeof password !== "string") {
+            return res.status(400).json({ error: "Invalid credentials format" });
+        }
+
+        const cleanIdentifier = identifier.trim();
+
         // Allow logging in with either username or email
         const user = await User.findOne({
-            $or: [{ email: identifier }, { username: identifier }]
+            $or: [{ email: cleanIdentifier }, { username: cleanIdentifier }]
         });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -271,8 +290,8 @@ export const remove_user = async (req, res) => {
         const paramId = req.params?.id;
         const targetId = paramId || id || userId;
 
-        const cleanUsername = typeof username === "string" ? username.trim() : null;
-        const cleanEmail = typeof email === "string" ? email.trim() : null;
+        const cleanUsername = typeof username === "string" ? escapeRegex(username.trim()) : null;
+        const cleanEmail = typeof email === "string" ? escapeRegex(email.trim()) : null;
 
         if (!cleanUsername && !cleanEmail && !targetId) {
             return res.status(400).json({ error: "Please provide username, email, or user id to remove user" });
@@ -340,17 +359,19 @@ export const get_Access = async (req, res) => {
     try {
         const { username } = req.query;
         let query = {};
-        if (username) {
-            query.username = { $regex: new RegExp(`^${username.trim()}$`, "i") };
+        if (typeof username === "string" && username.trim()) {
+            query.username = { $regex: new RegExp(`^${escapeRegex(username.trim())}$`, "i") };
         }
         const accessList = await Access.find(query).sort({ role: 1, username: 1 });
 
-        // Record read-only activity
-        await logUserActivity({
-            req,
-            action: "VIEW_ACCESS_LIST",
-            details: `Viewed role-based access list (${accessList.length} records)`
-        });
+        // Record read-only activity if user is authenticated or session is active
+        if (req.user || req.sessionId) {
+            await logUserActivity({
+                req,
+                action: "VIEW_ACCESS_LIST",
+                details: `Viewed role-based access list (${accessList.length} records)`
+            });
+        }
 
         return res.status(200).json({ message: "access list fetched successfully", access: accessList });
     } catch (error) {
@@ -366,11 +387,11 @@ export const get_ActivityLogs = async (req, res) => {
         if (sessionId) {
             query.sessionId = sessionId;
         }
-        if (username) {
-            query.username = { $regex: new RegExp(`^${username.trim()}$`, "i") };
+        if (typeof username === "string" && username.trim()) {
+            query.username = { $regex: new RegExp(`^${escapeRegex(username.trim())}$`, "i") };
         }
-        if (action) {
-            query.action = { $regex: new RegExp(`^${action.trim()}$`, "i") };
+        if (typeof action === "string" && action.trim()) {
+            query.action = { $regex: new RegExp(`^${escapeRegex(action.trim())}$`, "i") };
         }
         const logs = await ActivityLog.find(query).sort({ createdAt: -1 });
         return res.status(200).json({

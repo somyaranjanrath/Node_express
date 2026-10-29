@@ -58,12 +58,41 @@ export const logUserActivity = async ({
     req = null
 }) => {
     try {
-        const effectiveUsername = username || req?.user?.username || "anonymous";
-        const effectiveRole = role || req?.user?.role || "unknown";
-        const effectiveUserId = userId || req?.user?._id || req?.user?.id || null;
-        const effectiveSessionId = sessionId || req?.sessionId || null;
+        let effectiveUsername = username || req?.user?.username;
+        let effectiveRole = role || req?.user?.role;
+        let effectiveUserId = userId || req?.user?._id || req?.user?.id || null;
+        let effectiveSessionId = sessionId || req?.sessionId || null;
         const effectiveEndpoint = endpoint || req?.originalUrl || req?.url || "";
         const effectiveMethod = method || req?.method || "";
+
+        // If user is not yet identified, check if there is an active session running in the database
+        if (!effectiveUsername || effectiveUsername === "anonymous") {
+            try {
+                const Activity = mongoose.models.session_logs || mongoose.model("session_logs");
+                if (Activity) {
+                    const activeSession = await Activity.findOne({
+                        logoutTime: "Session in progress"
+                    }).sort({ loginTime: -1 });
+
+                    if (activeSession) {
+                        effectiveUsername = activeSession.username;
+                        effectiveRole = activeSession.role;
+                        effectiveUserId = activeSession.userId;
+                        effectiveSessionId = activeSession._id;
+                    }
+                }
+            } catch (lookupErr) {
+                // Ignore lookup error if model is not registered
+            }
+        }
+
+        // Final graceful fallbacks if no session is active
+        if (!effectiveUsername || effectiveUsername === "anonymous") {
+            effectiveUsername = req?.query?.username || req?.body?.username || "Guest";
+        }
+        if (!effectiveRole || effectiveRole === "unknown") {
+            effectiveRole = "user";
+        }
 
         return await ActivityLog.create({
             sessionId: effectiveSessionId,

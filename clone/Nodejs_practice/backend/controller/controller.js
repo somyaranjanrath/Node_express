@@ -1,16 +1,19 @@
 import Todo from "../models/todo.js"
+import User from "../models/user.js";
 import { logUserActivity } from "../models/activityLog.js";
 
 export const fetch = async(req,res)=>{
     try {
         const todos = await Todo.find().sort({ createdAt: -1 });
 
-        // Record read-only activity
-        await logUserActivity({
-            req,
-            action: "FETCH_TODOS",
-            details: `Fetched ${todos.length} todo(s)`
-        });
+        // Record read-only activity if user is authenticated or session is active
+        if (req.user || req.sessionId) {
+            await logUserActivity({
+                req,
+                action: "FETCH_TODOS",
+                details: `Fetched ${todos.length} todo(s)`
+            });
+        }
 
         res.status(200).json({ message: "todos....", todos });
     } catch (error) {
@@ -31,6 +34,14 @@ export const create = async(req,res)=>{
             createdBy: req.user.username,
             userId: req.user._id || req.user.id
         });
+
+        // Update user todos_performed count
+        const targetUserId = req.user._id || req.user.id;
+        if (targetUserId) {
+            await User.findByIdAndUpdate(targetUserId, { $inc: { todos_performed: 1 } });
+        } else if (req.user.username) {
+            await User.findOneAndUpdate({ username: req.user.username }, { $inc: { todos_performed: 1 } });
+        }
 
         // Record activity in current session
         await logUserActivity({
@@ -79,6 +90,12 @@ export const remove = async(req,res)=>{
         const todo = await Todo.findByIdAndDelete(id);
 
         if (todo) {
+            if (todo.userId) {
+                await User.findByIdAndUpdate(todo.userId, { $inc: { todos_performed: -1 } });
+            } else if (todo.createdBy) {
+                await User.findOneAndUpdate({ username: todo.createdBy }, { $inc: { todos_performed: -1 } });
+            }
+
             await logUserActivity({
                 req,
                 action: "DELETE_TODO",

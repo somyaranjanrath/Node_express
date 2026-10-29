@@ -42,7 +42,7 @@ const accessSchema = new mongoose.Schema({
         required: true,
         enum: ["user", "admin"]
     },
-    activities: {
+    can_perform: {
         type: String,
         required: true
     }
