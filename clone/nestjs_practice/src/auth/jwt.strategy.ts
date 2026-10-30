@@ -8,7 +8,10 @@ import { JWT_SECRET } from './constants';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: PrismaService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (req: any) => req?.headers?.['x-access-token'] || req?.headers?.['token'] || req?.query?.token,
+      ]),
       ignoreExpiration: false,
       secretOrKey: JWT_SECRET,
       algorithms: ['HS256'],

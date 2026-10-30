@@ -6,8 +6,18 @@
  * 3. Adds Light and Dark mode toggle button in the navbar with full persistence.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+
+// Automatically clear any zombie process occupying port 8081
+try {
+  const pids = execSync("fuser 8081/tcp 2>/dev/null || true").toString().trim();
+  if (pids) {
+    console.log(`Freeing port 8081 (PIDs: ${pids})...`);
+    execSync("fuser -k 8081/tcp 2>/dev/null || true");
+  }
+} catch (e) {}
 
 const npxBase = path.join(process.env.HOME || '/home/cdot', '.npm', '_npx');
 let mongoExpressDirs = [];
@@ -1343,6 +1353,362 @@ const customStyles = `
     display: none;
     box-shadow: 0 0 6px rgba(37, 99, 235, 0.65);
   }
+
+  /* Users Collection Table - Precision Alignment System */
+  .collection-table-users {
+    width: 100% !important;
+    min-width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  .collection-table-users th {
+    vertical-align: middle !important;
+    padding: 12px 14px !important;
+    font-weight: 700 !important;
+    font-size: 12.5px !important;
+    letter-spacing: 0.4px !important;
+    text-transform: capitalize !important;
+    background-color: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+  }
+
+  html.dark-theme .collection-table-users th {
+    background-color: #141f33 !important;
+    border-top: 1px solid #1e293b !important;
+    border-bottom: 2px solid #28394f !important;
+    color: #ffffff !important;
+  }
+
+  .collection-table-users td {
+    vertical-align: middle !important;
+    padding: 11px 14px !important;
+    border-top: 1px solid #f1f5f9 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    box-sizing: border-box !important;
+  }
+
+  html.dark-theme .collection-table-users td {
+    border-top: 1px solid #1e293b !important;
+    border-bottom: 1px solid #1e293b !important;
+    color: #ffffff !important;
+  }
+
+  .collection-table-users .tableContent {
+    display: block !important;
+    width: 100% !important;
+    line-height: 1.4 !important;
+  }
+
+  /* 1. _id Column (Left-aligned, monospace font, aligned trash button) */
+  .collection-table-users th.col-_id {
+    text-align: left !important;
+    min-width: 240px !important;
+    width: 240px !important;
+  }
+  .collection-table-users td.col-_id {
+    text-align: left !important;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;
+    font-size: 12px !important;
+  }
+  .collection-table-users td.col-_id .tableContent {
+    display: flex !important;
+    align-items: center !important;
+    text-align: left !important;
+    gap: 8px !important;
+  }
+  .collection-table-users td.col-_id .deleteButtonDocument {
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 2. username Column (Left-aligned, bold, readable) */
+  .collection-table-users th.col-username {
+    text-align: left !important;
+    min-width: 120px !important;
+    width: 120px !important;
+  }
+  .collection-table-users td.col-username {
+    text-align: left !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+  }
+  .collection-table-users td.col-username .tableContent {
+    text-align: left !important;
+  }
+
+  /* 3. role Column (Center-aligned header & badge) */
+  .collection-table-users th.col-role {
+    text-align: center !important;
+    min-width: 110px !important;
+    width: 110px !important;
+  }
+  .collection-table-users td.col-role {
+    text-align: center !important;
+  }
+  .collection-table-users td.col-role .tableContent {
+    text-align: center !important;
+  }
+
+  /* 4. email Column (Left-aligned) */
+  .collection-table-users th.col-email {
+    text-align: left !important;
+    min-width: 140px !important;
+    width: 140px !important;
+  }
+  .collection-table-users td.col-email {
+    text-align: left !important;
+    font-size: 13px !important;
+    min-width: 140px !important;
+    width: 140px !important;
+  }
+  .collection-table-users td.col-email .tableContent {
+    text-align: left !important;
+  }
+
+  /* 5. todos_performed Column (Center-aligned header & badge) */
+  .collection-table-users th.col-todos_performed {
+    text-align: center !important;
+    min-width: 140px !important;
+    width: 140px !important;
+  }
+  .collection-table-users td.col-todos_performed {
+    text-align: center !important;
+  }
+  .collection-table-users td.col-todos_performed .tableContent {
+    text-align: center !important;
+  }
+
+  /* 6 & 7. createdAt & updatedAt Columns (Center-aligned header & monospace dates) */
+  .collection-table-users th.col-createdAt,
+  .collection-table-users th.col-updatedAt {
+    text-align: center !important;
+    min-width: 220px !important;
+    width: 220px !important;
+  }
+  .collection-table-users td.col-createdAt,
+  .collection-table-users td.col-updatedAt {
+    text-align: center !important;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;
+    font-size: 11.5px !important;
+    min-width: 220px !important;
+    width: 220px !important;
+  }
+  .collection-table-users td.col-createdAt .tableContent,
+  .collection-table-users td.col-updatedAt .tableContent {
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  /* 8. password Column (Left-aligned, ellipsis truncated, full hash tooltip) */
+  .collection-table-users th.col-password {
+    text-align: left !important;
+    min-width: 155px !important;
+    width: 155px !important;
+    max-width: 155px !important;
+  }
+  .collection-table-users td.col-password {
+    text-align: left !important;
+    max-width: 155px !important;
+  }
+  .collection-table-users td.col-password .tableContent {
+    text-align: left !important;
+  }
+  .collection-table-users .user-password-hash {
+    display: block !important;
+    max-width: 145px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;
+    font-size: 11px !important;
+    opacity: 0.75 !important;
+    cursor: help !important;
+  }
+
+  /* 9. __v Column (Center-aligned) */
+  .collection-table-users th.col-__v {
+    text-align: center !important;
+    min-width: 60px !important;
+    width: 60px !important;
+  }
+  .collection-table-users td.col-__v {
+    text-align: center !important;
+    font-size: 12px !important;
+  }
+  .collection-table-users td.col-__v .tableContent {
+    text-align: center !important;
+  }
+
+  /* Badges & Placeholders */
+  .role-badge {
+    display: inline-block !important;
+    padding: 3px 12px !important;
+    border-radius: 9999px !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1.3 !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  }
+  .role-badge-admin {
+    background: linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%) !important;
+  }
+  .role-badge-user {
+    background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%) !important;
+  }
+
+  .todos-count-badge {
+    display: inline-block !important;
+    min-width: 26px !important;
+    padding: 2px 9px !important;
+    border-radius: 9999px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    background-color: #e0e7ff !important;
+    color: #4338ca !important;
+    border: 1px solid #c7d2fe !important;
+  }
+  html.dark-theme .todos-count-badge {
+    background-color: #1e1b4b !important;
+    color: #a5b4fc !important;
+    border-color: #3730a3 !important;
+  }
+
+  .empty-cell-placeholder {
+    color: #94a3b8 !important;
+    font-style: italic !important;
+    font-weight: 500 !important;
+  }
+  html.dark-theme .empty-cell-placeholder {
+    color: #64748b !important;
+  }
+
+  .status-badge {
+    display: inline-block !important;
+    padding: 4px 14px !important;
+    border-radius: 9999px !important;
+    font-weight: 700 !important;
+    font-size: 11.5px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.6px !important;
+    line-height: 1.35 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+  }
+  .status-badge-failed {
+    background-color: #fee2e2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #f87171 !important;
+  }
+  html.dark-theme .status-badge-failed {
+    background-color: rgba(239, 68, 68, 0.25) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+  }
+  .status-badge-success {
+    background-color: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #86efac !important;
+  }
+  html.dark-theme .status-badge-success {
+    background-color: rgba(16, 185, 129, 0.2) !important;
+    color: #6ee7b7 !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+  }
+
+  /* Activity Logs Collection Table - Dedicated Status Column Sizing */
+  .collection-table-activity_logs,
+  .collection-activity_logs table {
+    width: max-content !important;
+    min-width: 100% !important;
+  }
+
+  .collection-table-activity_logs th.col-status,
+  .collection-activity_logs th.col-status {
+    min-width: 150px !important;
+    width: 150px !important;
+    text-align: center !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .collection-table-activity_logs td.col-status,
+  .collection-activity_logs td.col-status {
+    min-width: 150px !important;
+    width: 150px !important;
+    text-align: center !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .collection-table-activity_logs td.col-status .tableContent,
+  .collection-activity_logs td.col-status .tableContent {
+    text-align: center !important;
+    width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+  }
+
+  .action-tag {
+    display: inline-block !important;
+    padding: 5px 14px !important;
+    border-radius: 8px !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
+    font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    letter-spacing: 0.5px !important;
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+    line-height: 1.35 !important;
+  }
+  html.dark-theme .action-tag {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .collection-table-activity_logs th.col-action,
+  .collection-activity_logs th.col-action {
+    min-width: 220px !important;
+    width: 220px !important;
+    text-align: center !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .collection-table-activity_logs td.col-action,
+  .collection-activity_logs td.col-action {
+    min-width: 220px !important;
+    width: 220px !important;
+    text-align: center !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .collection-table-activity_logs td.col-action .tableContent,
+  .collection-activity_logs td.col-action .tableContent {
+    text-align: center !important;
+    width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    font-size: 14px !important;
+  }
+
+  /* Hide fade overlay to prevent blocking table columns */
+  #fadeToWhiteID, .fadeToWhite {
+    display: none !important;
+  }
 `;
 
 const resizerScript = `
@@ -1404,19 +1770,42 @@ const resizerScript = `
         $resetBtn.addClass('disabled').prop('disabled', true).css('opacity', '0.6');
       }
 
-      // Check fadeToWhite indicator
       var $wrapper = $('.tableWrapper');
       if ($wrapper.length) {
         if ($('.tableHeaderFooterBars').width() <= $wrapper.width()) {
           $('#fadeToWhiteID').hide();
         } else {
-          $('#fadeToWhiteID').show().height($wrapper.height());
+          $('#fadeToWhiteID').hide();
         }
       }
     }
 
-    // Apply any initial saved widths
     applyColumnWidths();
+
+    // Place admin strictly above user in DOM table for users collection
+    if (collectionName === 'users') {
+      var $tableUsers = $('.collection-table-users');
+      var $tbody = $tableUsers.find('tbody');
+      if (!$tbody.length) $tbody = $tableUsers;
+      var $rows = $tableUsers.find('tr:has(td)').get();
+      var roleIdx = -1;
+      $tableUsers.find('thead th').each(function (i) {
+        if ($(this).data('column') === 'role') roleIdx = i;
+      });
+      if (roleIdx !== -1 && $rows.length > 0) {
+        $rows.sort(function (a, b) {
+          var aRole = $(a).find('td').eq(roleIdx).text().trim().toLowerCase();
+          var bRole = $(b).find('td').eq(roleIdx).text().trim().toLowerCase();
+          var aAdmin = aRole.indexOf('admin') !== -1 ? 0 : 1;
+          var bAdmin = bRole.indexOf('admin') !== -1 ? 0 : 1;
+          if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+          return 0;
+        });
+        $.each($rows, function (i, r) {
+          $tbody.append(r);
+        });
+      }
+    }
 
     // Reset button
     $resetBtn.on('click', function (e) {
@@ -1693,23 +2082,39 @@ mongoExpressDirs.forEach(dir => {
       }
     }
 
+    // 5. Fill empty cells with placeholder and render badges
+    const tdWholeRegex = /<td\s+class="col-\{\{column\}\}"[\s\S]*?<\/td>/;
+    const fullTdReplacement = `<td class="col-{{column}}" style="vertical-align: middle;"><div class="tableContent" style="white-space: normal; line-height: 1.4;">{% if !settings.read_only && !settings.no_delete && column === '_id' && collectionName !== 'system.indexes' %}<form class="deleteButtonDocument" method="POST" style="display:inline-block; margin-right: 6px; margin-bottom: 0;" action="{{ collectionUrl }}/{{ document._id | json | safe | url_encode }}?subtype={{ document._id.sub_type }}&skip={{ skip }}&key={{ key }}&value={{ value }}&type={{ type }}&query={{ query }}&projection= {{ projection }}"><input type="hidden" name="_method" value="delete"><button type="submit" class="btn btn-danger btn-xs" style="padding: 1px 5px; font-size: 11px;"><span class="glyphicon glyphicon-trash"></span></button></form>{% endif %}{% set cellVal = document[column] | stringDocIDs | to_display %}{% if column === 'role' %}{% if cellVal == 'admin' || cellVal == '"admin"' %}<span class="role-badge role-badge-admin">Admin</span>{% else %}<span class="role-badge role-badge-user">User</span>{% endif %}{% elseif column === 'status' %}{% if cellVal == 'FAILED' || cellVal == '"FAILED"' %}<span class="status-badge status-badge-failed">FAILED</span>{% elseif cellVal == 'SUCCESS' || cellVal == '"SUCCESS"' %}<span class="status-badge status-badge-success">SUCCESS</span>{% else %}<span class="status-badge">{{ cellVal }}</span>{% endif %}{% elseif column === 'action' %}<span class="action-tag">{{ cellVal }}</span>{% elseif column === 'todos_performed' %}<span class="todos-count-badge">{{ cellVal }}</span>{% elseif column === 'password' %}<span class="user-password-hash" title="{{ cellVal }}">{{ cellVal }}</span>{% elseif cellVal === "" || cellVal === null || cellVal === undefined || cellVal == '""' %}<span class="empty-cell-placeholder">—</span>{% else %}{{ cellVal | safe }}{% endif %}</div></td>`;
+    if (tdWholeRegex.test(content)) {
+      content = content.replace(tdWholeRegex, fullTdReplacement);
+    }
+
     fs.writeFileSync(collectionHtmlPath, content, 'utf8');
     console.log(`Successfully patched collection: ${collectionHtmlPath}`);
   }
 
   // ==========================================
-  // Patch routes/collection.js (Compute todos_performed)
+  // Patch routes/collection.js (Admin First in Users + Proper Columns + Fill Empty Spaces)
   // ==========================================
   const collectionRoutePath = path.join(dir, 'lib', 'routes', 'collection.js');
   if (fs.existsSync(collectionRoutePath)) {
     let routeContent = fs.readFileSync(collectionRoutePath, 'utf8');
-    if (!routeContent.includes('todos_performed')) {
-      const targetStr = 'const docs = [];\n      let columns = [];\n\n      for (const i in items) {';
-      const replacementStr = `const docs = [];
-      let columns = [];
 
-      if (req.collectionName === 'users') {
+    // 1. Ensure default sort in users puts admin first: { role: 1, username: 1 }
+    if (routeContent.includes("col === 'roles_based_access'") && !routeContent.includes("col === 'roles_based_access' || col === 'users'")) {
+      routeContent = routeContent.replace("if (col === 'roles_based_access') {", "if (col === 'roles_based_access' || col === 'users') {");
+    }
+
+    // 2. Compute todos_performed, ensure admin is above user, and fill missing dates
+    const oldUsersBlockRegex = /if\s*\(req\.collectionName\s*===\s*'users'(\s*\|\|\s*\(req\.params\s*&&\s*req\.params\.collection\s*===\s*'users'\))?\)\s*\{[\s\S]*?items\[i\]\.todos_performed\s*=\s*c;[\s\S]*?\}\s*\}\s*catch\s*\(e\)\s*\{\}\s*\}/;
+    const newUsersBlock = `if (req.collectionName === 'users' || (req.params && req.params.collection === 'users')) {
         try {
+          items.sort((a, b) => {
+            const aAdmin = (String(a.role || '').toLowerCase().includes('admin') ? 0 : 1);
+            const bAdmin = (String(b.role || '').toLowerCase().includes('admin') ? 0 : 1);
+            if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+            return String(a._id || '').localeCompare(String(b._id || ''));
+          });
           const todosCol = req.db.collection('todos');
           for (const i in items) {
             const uId = items[i]._id;
@@ -1722,17 +2127,68 @@ mongoExpressDirs.forEach(dir => {
               ]
             });
             items[i].todos_performed = c;
+            if (!items[i].role) items[i].role = 'user';
+            if (!items[i].createdAt && items[i]._id && items[i]._id.getTimestamp) {
+              items[i].createdAt = items[i]._id.getTimestamp();
+            }
+            if (!items[i].updatedAt && items[i]._id && items[i]._id.getTimestamp) {
+              items[i].updatedAt = items[i]._id.getTimestamp();
+            }
           }
         } catch (e) {}
-      }
+      }`;
 
-      for (const i in items) {`;
+    if (oldUsersBlockRegex.test(routeContent)) {
+      routeContent = routeContent.replace(oldUsersBlockRegex, newUsersBlock);
+    } else if (!routeContent.includes('items.sort')) {
+      const targetStr = 'const docs = [];\n      let columns = [];\n\n      for (const i in items) {';
+      const replacementStr = 'const docs = [];\n      let columns = [];\n\n      ' + newUsersBlock + '\n\n      for (const i in items) {';
       if (routeContent.includes(targetStr)) {
         routeContent = routeContent.replace(targetStr, replacementStr);
-        fs.writeFileSync(collectionRoutePath, routeContent, 'utf8');
-        console.log(`Successfully patched collection route: ${collectionRoutePath}`);
       }
     }
+
+    // 3. Fill empty spaces across all visible columns, arrange user columns logically, and sort docs
+    const oldFillRegex = /columns\s*=\s*_\.uniq\(_\.flatten\(columns\)\);[\s\S]*?for\s*\(const\s+i\s+in\s+docs\)\s*\{[\s\S]*?docs\[i\]\[col\]\s*=\s*'—';\s*\}\s*\}\s*\}\s*\}/;
+    const newFillCode = `columns = _.uniq(_.flatten(columns));
+
+      if (req.collectionName === 'users' || (req.params && req.params.collection === 'users')) {
+        const preferred = ['_id', 'username', 'role', 'email', 'todos_performed', 'createdAt', 'updatedAt', 'password', '__v'];
+        columns = preferred.filter(c => columns.includes(c)).concat(columns.filter(c => !preferred.includes(c)));
+      }
+
+      for (const i in docs) {
+        if (typeof docs[i] === 'object' && docs[i] !== null) {
+          for (const col of columns) {
+            if (docs[i][col] === undefined || docs[i][col] === null || docs[i][col] === '') {
+              if (col === 'todos_performed') docs[i][col] = 0;
+              else if (col === 'description') docs[i][col] = 'No description';
+              else if (col === 'role') docs[i][col] = 'user';
+              else if (col === 'sessionDuration') docs[i][col] = 'Ongoing';
+              else if (col === 'logoutTime') docs[i][col] = 'Session in progress';
+              else docs[i][col] = '—';
+            }
+          }
+        }
+      }
+
+      if (req.collectionName === 'users' || (req.params && req.params.collection === 'users')) {
+        docs.sort((a, b) => {
+          const aAdmin = (String(a.role || '').toLowerCase().includes('admin') ? 0 : 1);
+          const bAdmin = (String(b.role || '').toLowerCase().includes('admin') ? 0 : 1);
+          if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+          return String(a._id || '').localeCompare(String(b._id || ''));
+        });
+      }`;
+
+    if (oldFillRegex.test(routeContent)) {
+      routeContent = routeContent.replace(oldFillRegex, newFillCode);
+    } else if (routeContent.includes('columns = _.uniq(_.flatten(columns));')) {
+      routeContent = routeContent.replace('columns = _.uniq(_.flatten(columns));', newFillCode);
+    }
+
+    fs.writeFileSync(collectionRoutePath, routeContent, 'utf8');
+    console.log(`Successfully patched collection route: ${collectionRoutePath}`);
   }
 
   // ==========================================
@@ -1764,6 +2220,44 @@ mongoExpressDirs.forEach(dir => {
 
 .collection-users .col-todos_performed .tableContent {
   text-align: center;
+}
+
+/* activity_logs dedicated column spacing */
+.collection-activity_logs table,
+.collection-table-activity_logs {
+  width: max-content !important;
+  min-width: 100% !important;
+}
+
+.collection-activity_logs th.col-status,
+.collection-table-activity_logs th.col-status,
+.collection-activity_logs td.col-status,
+.collection-table-activity_logs td.col-status {
+  min-width: 150px !important;
+  width: 150px !important;
+  text-align: center !important;
+}
+
+.collection-activity_logs .col-status .tableContent,
+.collection-table-activity_logs .col-status .tableContent {
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.collection-activity_logs th.col-action,
+.collection-table-activity_logs th.col-action,
+.collection-activity_logs td.col-action,
+.collection-table-activity_logs td.col-action {
+  min-width: 220px !important;
+  width: 220px !important;
+  text-align: center !important;
+}
+
+.collection-activity_logs .col-action .tableContent,
+.collection-table-activity_logs .col-action .tableContent {
+  text-align: center !important;
+  width: 100% !important;
+  font-size: 14px !important;
 }
 `;
 

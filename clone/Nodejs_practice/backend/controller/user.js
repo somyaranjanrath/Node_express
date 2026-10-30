@@ -61,7 +61,26 @@ export const signup = async (req, res) => {
 
 export const get_User = async (req, res) => {
     try {
-        const users = await User.find().select("username email password role todos_performed");
+        const rawUsers = await User.find()
+            .select("username email password role todos_performed createdAt updatedAt")
+            .sort({ role: 1, username: 1 });
+
+        const users = rawUsers
+            .sort((a, b) => {
+                const aAdmin = a.role === "admin" ? 0 : 1;
+                const bAdmin = b.role === "admin" ? 0 : 1;
+                if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+                return (a.username || "").localeCompare(b.username || "");
+            })
+            .map(u => ({
+                _id: u._id,
+                username: u.username,
+                email: u.email,
+                role: u.role || "user",
+                todos_performed: u.todos_performed ?? 0,
+                createdAt: u.createdAt || (u._id && u._id.getTimestamp ? u._id.getTimestamp() : new Date()),
+                updatedAt: u.updatedAt || (u._id && u._id.getTimestamp ? u._id.getTimestamp() : new Date())
+            }));
 
         // Record read-only activity if user is authenticated or session is active
         if (req.user || req.sessionId) {
@@ -323,6 +342,12 @@ export const remove_user = async (req, res) => {
         }
 
         if (req.user && userToFind._id.toString() === req.user._id.toString()) {
+            await logUserActivity({
+                req,
+                action: "DELETE_USER",
+                details: `Failed delete user: Admin '${req.user?.username}' attempted to delete their own active account`,
+                status: "FAILED"
+            });
             return res.status(400).json({ error: "Admin cannot delete their own active account." });
         }
 

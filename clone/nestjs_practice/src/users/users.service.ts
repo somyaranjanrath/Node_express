@@ -14,7 +14,7 @@ export class UsersService {
   ) {}
 
   async findAll(reqUser?: any) {
-    const users = await this.prisma.user.findMany({
+    const rawUsers = await this.prisma.user.findMany({
       select: {
         id: true,
         username: true,
@@ -22,8 +22,25 @@ export class UsersService {
         role: true,
         todos_performed: true,
         createdAt: true,
+        updatedAt: true,
       },
+      orderBy: [{ role: 'asc' }, { username: 'asc' }],
     });
+
+    const users = rawUsers
+      .sort((a, b) => {
+        const aAdmin = a.role === 'admin' ? 0 : 1;
+        const bAdmin = b.role === 'admin' ? 0 : 1;
+        if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+        return (a.username || '').localeCompare(b.username || '');
+      })
+      .map((u) => ({
+        ...u,
+        role: u.role || 'user',
+        todos_performed: u.todos_performed ?? 0,
+        createdAt: u.createdAt || new Date(parseInt(u.id.substring(0, 8), 16) * 1000),
+        updatedAt: u.updatedAt || new Date(parseInt(u.id.substring(0, 8), 16) * 1000),
+      }));
 
     if (reqUser?.username) {
       await this.activityLogsService.log({
@@ -78,6 +95,17 @@ export class UsersService {
     }
 
     if (adminUser && userToFind.id === adminUser.id) {
+      await this.activityLogsService.log({
+        sessionId: adminUser?.sessionId || null,
+        userId: adminUser?.id || null,
+        username: adminUser?.username || 'admin',
+        role: adminUser?.role || 'admin',
+        action: 'DELETE_USER',
+        details: `Failed delete user: Admin '${adminUser?.username}' attempted to delete their own active account`,
+        endpoint: '/api/user/delete_user',
+        method: 'DELETE',
+        status: 'FAILED',
+      });
       throw new BadRequestException('Admin cannot delete their own active account.');
     }
 

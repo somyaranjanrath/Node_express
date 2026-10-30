@@ -6,10 +6,10 @@ export class AppService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAllData() {
-    const [users, todos, rawSessions, activityLogs, rolesAccess] = await Promise.all([
+    const [rawUsers, rawTodos, rawSessions, rawActivities, rawRoles] = await Promise.all([
       this.prisma.user.findMany({
-        select: { id: true, username: true, email: true, role: true, createdAt: true },
-        orderBy: { username: 'asc' },
+        select: { id: true, username: true, email: true, role: true, todos_performed: true, createdAt: true, updatedAt: true },
+        orderBy: [{ role: 'asc' }, { username: 'asc' }],
       }),
       this.prisma.todo.findMany({
         orderBy: { createdAt: 'desc' },
@@ -21,17 +21,63 @@ export class AppService {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.rolesBasedAccess.findMany({
-        orderBy: { role: 'asc' },
+        orderBy: [{ role: 'asc' }, { username: 'asc' }],
       }),
     ]);
 
+    // Keep admin above regular users and fill empty values
+    const users = rawUsers
+      .sort((a, b) => {
+        const aAdmin = a.role === 'admin' ? 0 : 1;
+        const bAdmin = b.role === 'admin' ? 0 : 1;
+        if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+        return (a.username || '').localeCompare(b.username || '');
+      })
+      .map((u) => ({
+        ...u,
+        role: u.role || 'user',
+        todos_performed: u.todos_performed ?? 0,
+        createdAt: u.createdAt || new Date(parseInt(u.id.substring(0, 8), 16) * 1000),
+        updatedAt: u.updatedAt || new Date(parseInt(u.id.substring(0, 8), 16) * 1000),
+      }));
+
+    const todos = rawTodos.map((t) => ({
+      ...t,
+      description: t.description && t.description.trim() ? t.description : 'No description provided',
+      createdBy: t.createdBy || 'Unknown',
+      userId: t.userId || '—',
+    }));
+
     const sessionLogs = rawSessions.map((s) => ({
       ...s,
+      role: s.role || 'user',
+      sessionDuration: s.sessionDuration || (s.logoutTime ? 'Calculated' : 'Ongoing'),
       logoutTime:
         typeof s.logoutTime === 'object' && s.logoutTime !== null && '$date' in (s.logoutTime as any)
           ? (s.logoutTime as any)['$date']
           : s.logoutTime ?? 'Session in progress',
     }));
+
+    const activityLogs = rawActivities.map((a) => ({
+      ...a,
+      role: a.role || 'user',
+      endpoint: a.endpoint || '—',
+      method: a.method || 'GET',
+      status: a.status || 'SUCCESS',
+      details: a.details && a.details.trim() ? a.details : 'Operation completed',
+    }));
+
+    const rolesAccess = rawRoles
+      .sort((a, b) => {
+        const aAdmin = a.role === 'admin' ? 0 : 1;
+        const bAdmin = b.role === 'admin' ? 0 : 1;
+        if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+        return (a.username || '').localeCompare(b.username || '');
+      })
+      .map((r) => ({
+        ...r,
+        can_perform: r.can_perform || 'Standard Permissions',
+      }));
 
     return {
       database: 'MongoDB (todo-app)',
@@ -42,6 +88,7 @@ export class AppService {
         totalSessions: sessionLogs.length,
         activeSessions: sessionLogs.filter((s) => s.logoutTime === 'Session in progress').length,
         totalActivities: activityLogs.length,
+        failedActivities: activityLogs.filter((a) => a.status === 'FAILED').length,
         totalRoles: rolesAccess.length,
       },
       data: {
@@ -56,16 +103,68 @@ export class AppService {
 
   getDashboardHtml(): string {
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NestJS & Prisma - MongoDB Data Viewer</title>
+  <script>
+    (function() {
+      try {
+        const saved = localStorage.getItem('nestjs_theme');
+        if (saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root, [data-theme="light"] {
+      --bg-base: #F8FAFC;
+      --bg-card: rgba(255, 255, 255, 0.9);
+      --bg-card-hover: rgba(241, 245, 249, 0.95);
+      --border-color: rgba(15, 23, 42, 0.08);
+      --border-focus: rgba(79, 70, 229, 0.5);
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --primary: #4F46E5;
+      --primary-glow: rgba(79, 70, 229, 0.2);
+      --accent: #0284C7;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --admin-badge: linear-gradient(135deg, #EC4899, #8B5CF6);
+      --user-badge: linear-gradient(135deg, #3B82F6, #06B6D4);
+      --header-bg: rgba(255, 255, 255, 0.85);
+      --footer-bg: rgba(248, 250, 252, 0.85);
+      --table-head-bg: rgba(241, 245, 249, 0.9);
+      --table-border: rgba(15, 23, 42, 0.06);
+      --stat-val-color: #0F172A;
+      --search-bg: rgba(241, 245, 249, 0.8);
+      --search-text: #0F172A;
+      --pre-bg: rgba(241, 245, 249, 0.9);
+      --pre-color: #334155;
+      --id-bg: rgba(2, 132, 199, 0.08);
+      --id-color: #0284C7;
+      --card-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+      --btn-outline-bg: rgba(15, 23, 42, 0.04);
+      --btn-outline-hover: rgba(15, 23, 42, 0.08);
+      --tab-hover-bg: rgba(15, 23, 42, 0.05);
+      --tab-badge-bg: rgba(15, 23, 42, 0.08);
+      --body-gradient: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.06) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.05) 0px, transparent 50%);
+    }
+
+    [data-theme="dark"] {
       --bg-base: #0B0F19;
       --bg-card: rgba(18, 24, 38, 0.7);
       --bg-card-hover: rgba(26, 34, 52, 0.85);
@@ -81,6 +180,26 @@ export class AppService {
       --danger: #EF4444;
       --admin-badge: linear-gradient(135deg, #EC4899, #8B5CF6);
       --user-badge: linear-gradient(135deg, #3B82F6, #06B6D4);
+      --header-bg: rgba(11, 15, 25, 0.8);
+      --footer-bg: rgba(11, 15, 25, 0.6);
+      --table-head-bg: rgba(0, 0, 0, 0.35);
+      --table-border: rgba(255, 255, 255, 0.04);
+      --stat-val-color: #FFFFFF;
+      --search-bg: rgba(0, 0, 0, 0.25);
+      --search-text: #FFFFFF;
+      --pre-bg: rgba(0, 0, 0, 0.25);
+      --pre-color: #D1D5DB;
+      --id-bg: rgba(6, 182, 212, 0.1);
+      --id-color: var(--accent);
+      --card-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      --btn-outline-bg: rgba(255, 255, 255, 0.05);
+      --btn-outline-hover: rgba(255, 255, 255, 0.1);
+      --tab-hover-bg: rgba(255, 255, 255, 0.05);
+      --tab-badge-bg: rgba(255, 255, 255, 0.15);
+      --body-gradient: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
     }
 
     * {
@@ -92,26 +211,25 @@ export class AppService {
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--bg-base);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
-        radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+      background-image: var(--body-gradient);
       background-attachment: fixed;
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
 
     header {
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      background: rgba(11, 15, 25, 0.8);
+      background: var(--header-bg);
       border-bottom: 1px solid var(--border-color);
       position: sticky;
       top: 0;
       z-index: 50;
       padding: 1rem 2rem;
+      transition: background-color 0.25s ease, border-color 0.25s ease;
     }
 
     .header-content {
@@ -217,14 +335,14 @@ export class AppService {
     }
 
     .btn-outline {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--btn-outline-bg);
       border-color: var(--border-color);
       color: var(--text-main);
     }
 
     .btn-outline:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
+      background: var(--btn-outline-hover);
+      border-color: var(--border-color);
     }
 
     main {
@@ -240,8 +358,17 @@ export class AppService {
 
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 1.25rem;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 1rem;
+      width: 100%;
+    }
+
+    @media (max-width: 1100px) {
+      .stats-grid {
+        grid-template-columns: repeat(6, minmax(130px, 1fr));
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+      }
     }
 
     .stat-card {
@@ -249,11 +376,12 @@ export class AppService {
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 1.25rem 1.5rem;
+      border-radius: 14px;
+      padding: 1rem 1.15rem;
       transition: all 0.25s ease;
       position: relative;
       overflow: hidden;
+      min-width: 0;
     }
 
     .stat-card::before {
@@ -267,6 +395,10 @@ export class AppService {
       opacity: 0.8;
     }
 
+    .stat-card.stat-card-failed::before {
+      background: linear-gradient(90deg, #EF4444, #F87171);
+    }
+
     .stat-card:hover {
       transform: translateY(-3px);
       border-color: rgba(99, 102, 241, 0.4);
@@ -274,19 +406,23 @@ export class AppService {
     }
 
     .stat-label {
-      font-size: 0.8125rem;
-      font-weight: 600;
+      font-size: 0.725rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       color: var(--text-muted);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.4rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .stat-value {
-      font-size: 2rem;
+      font-size: 1.75rem;
       font-weight: 800;
-      color: #fff;
+      color: var(--stat-val-color);
       font-family: 'JetBrains Mono', monospace;
+      line-height: 1.2;
     }
 
     .controls-bar {
@@ -324,7 +460,7 @@ export class AppService {
 
     .tab-btn:hover {
       color: var(--text-main);
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--tab-hover-bg);
     }
 
     .tab-btn.active {
@@ -337,16 +473,16 @@ export class AppService {
       font-size: 0.75rem;
       padding: 0.125rem 0.5rem;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--tab-badge-bg);
       font-family: 'JetBrains Mono', monospace;
     }
 
     .search-input {
-      background: rgba(0, 0, 0, 0.25);
+      background: var(--search-bg);
       border: 1px solid var(--border-color);
       border-radius: 8px;
       padding: 0.5rem 1rem;
-      color: #fff;
+      color: var(--search-text);
       font-size: 0.875rem;
       min-width: 250px;
       outline: none;
@@ -365,7 +501,8 @@ export class AppService {
       border: 1px solid var(--border-color);
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      box-shadow: var(--card-shadow);
+      transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
     }
 
     .table-container {
@@ -381,7 +518,7 @@ export class AppService {
     }
 
     thead {
-      background: rgba(0, 0, 0, 0.35);
+      background: var(--table-head-bg);
       border-bottom: 1px solid var(--border-color);
     }
 
@@ -396,7 +533,7 @@ export class AppService {
     }
 
     tbody tr {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--table-border);
       transition: background-color 0.15s ease;
     }
 
@@ -413,8 +550,8 @@ export class AppService {
     .id-code {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.8125rem;
-      color: var(--accent);
-      background: rgba(6, 182, 212, 0.1);
+      color: var(--id-color);
+      background: var(--id-bg);
       padding: 0.2rem 0.45rem;
       border-radius: 6px;
     }
@@ -451,6 +588,20 @@ export class AppService {
       border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
+    .badge-failed {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    tr.tr-failed {
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    tr.tr-failed:hover {
+      background: rgba(239, 68, 68, 0.1) !important;
+    }
+
     .method-tag {
       font-family: 'JetBrains Mono', monospace;
       font-weight: 700;
@@ -469,10 +620,10 @@ export class AppService {
       font-size: 0.785rem;
       white-space: pre-line;
       line-height: 1.4;
-      background: rgba(0, 0, 0, 0.25);
+      background: var(--pre-bg);
       padding: 0.75rem;
       border-radius: 8px;
-      color: #D1D5DB;
+      color: var(--pre-color);
       max-height: 180px;
       overflow-y: auto;
     }
@@ -489,7 +640,8 @@ export class AppService {
       text-align: center;
       font-size: 0.8125rem;
       color: var(--text-muted);
-      background: rgba(11, 15, 25, 0.6);
+      background: var(--footer-bg);
+      transition: background-color 0.25s ease, border-color 0.25s ease;
     }
 
     .footer-links {
@@ -521,6 +673,15 @@ export class AppService {
         </div>
       </div>
       <div class="header-actions">
+        <button class="btn btn-outline" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light / Dark Mode">
+          <svg id="themeIconSun" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg id="themeIconMoon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+          <span id="themeToggleText">Dark Mode</span>
+        </button>
         <button class="btn btn-primary" onclick="loadAllData()" id="refreshBtn">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -554,6 +715,10 @@ export class AppService {
       <div class="stat-card">
         <div class="stat-label">Audit Activities</div>
         <div class="stat-value" id="statActivities">-</div>
+      </div>
+      <div class="stat-card stat-card-failed">
+        <div class="stat-label">Failed Actions</div>
+        <div class="stat-value" id="statFailed" style="color: var(--danger);">-</div>
       </div>
     </div>
 
@@ -619,6 +784,7 @@ export class AppService {
         document.getElementById('statActiveSessions').textContent = json.stats.activeSessions;
         document.getElementById('statSessions').textContent = json.stats.totalSessions;
         document.getElementById('statActivities').textContent = json.stats.totalActivities;
+        document.getElementById('statFailed').textContent = json.stats.failedActivities ?? 0;
 
         // Update badges
         document.getElementById('badgeUsers').textContent = json.stats.totalUsers;
@@ -657,12 +823,17 @@ export class AppService {
       if (activeTab === 'users') {
         const list = currentData.users.filter(u => 
           !term || u.username.toLowerCase().includes(term) || u.email.toLowerCase().includes(term) || u.role.toLowerCase().includes(term)
-        );
+        ).sort((a, b) => {
+          const aAdmin = a.role === 'admin' ? 0 : 1;
+          const bAdmin = b.role === 'admin' ? 0 : 1;
+          if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+          return (a.username || '').localeCompare(b.username || '');
+        });
         if (list.length === 0) {
           container.innerHTML = '<div class="empty-state">No users match your search.</div>';
           return;
         }
-        let html = '<table><thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Created At</th></tr></thead><tbody>';
+        let html = '<table><thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Todos Performed</th><th>Created At</th></tr></thead><tbody>';
         list.forEach(u => {
           const badgeClass = u.role === 'admin' ? 'badge-admin' : 'badge-user';
           html += '<tr>' +
@@ -670,6 +841,7 @@ export class AppService {
             '<td><strong>' + escapeHtml(u.username) + '</strong></td>' +
             '<td>' + escapeHtml(u.email) + '</td>' +
             '<td><span class="badge ' + badgeClass + '">' + escapeHtml(u.role) + '</span></td>' +
+            '<td><span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700;">' + (u.todos_performed ?? 0) + '</span></td>' +
             '<td>' + (u.createdAt ? new Date(u.createdAt).toLocaleString() : 'N/A') + '</td>' +
           '</tr>';
         });
@@ -725,7 +897,7 @@ export class AppService {
       }
       else if (activeTab === 'activities') {
         const list = currentData.activityLogs.filter(a => 
-          !term || a.username.toLowerCase().includes(term) || a.action.toLowerCase().includes(term) || (a.details || '').toLowerCase().includes(term) || (a.endpoint || '').toLowerCase().includes(term)
+          !term || a.username.toLowerCase().includes(term) || a.action.toLowerCase().includes(term) || (a.details || '').toLowerCase().includes(term) || (a.endpoint || '').toLowerCase().includes(term) || (a.status || '').toLowerCase().includes(term)
         );
         if (list.length === 0) {
           container.innerHTML = '<div class="empty-state">No activity logs match your search.</div>';
@@ -734,13 +906,17 @@ export class AppService {
         let html = '<table><thead><tr><th>Timestamp</th><th>User</th><th>Role</th><th>Action</th><th>Endpoint</th><th>Status</th><th>Details</th></tr></thead><tbody>';
         list.forEach(a => {
           const method = a.method || 'GET';
-          html += '<tr>' +
+          const isFailed = (a.status || '').toUpperCase() === 'FAILED';
+          const isSuccess = (a.status || '').toUpperCase() === 'SUCCESS';
+          const statusBadgeClass = isFailed ? 'badge-failed' : (isSuccess ? 'badge-completed' : 'badge-in-progress');
+          const rowClass = isFailed ? ' class="tr-failed"' : '';
+          html += '<tr' + rowClass + '>' +
             '<td>' + (a.createdAt ? new Date(a.createdAt).toLocaleString() : 'N/A') + '</td>' +
             '<td><strong>' + escapeHtml(a.username) + '</strong></td>' +
             '<td><span class="badge ' + (a.role === 'admin' ? 'badge-admin' : 'badge-user') + '">' + escapeHtml(a.role) + '</span></td>' +
-            '<td><strong>' + escapeHtml(a.action) + '</strong></td>' +
+            '<td><strong' + (isFailed ? ' style="color: var(--danger);"' : '') + '>' + escapeHtml(a.action) + '</strong></td>' +
             '<td><span class="method-tag method-' + method + '">' + method + '</span> ' + escapeHtml(a.endpoint) + '</td>' +
-            '<td><span class="badge ' + (a.status === 'SUCCESS' ? 'badge-completed' : 'badge-in-progress') + '">' + escapeHtml(a.status) + '</span></td>' +
+            '<td><span class="badge ' + statusBadgeClass + '">' + escapeHtml(a.status) + '</span></td>' +
             '<td>' + escapeHtml(a.details || '') + '</td>' +
           '</tr>';
         });
@@ -750,7 +926,12 @@ export class AppService {
       else if (activeTab === 'roles') {
         const list = currentData.rolesAccess.filter(r => 
           !term || r.username.toLowerCase().includes(term) || r.role.toLowerCase().includes(term)
-        );
+        ).sort((a, b) => {
+          const aAdmin = a.role === 'admin' ? 0 : 1;
+          const bAdmin = b.role === 'admin' ? 0 : 1;
+          if (aAdmin !== bAdmin) return aAdmin - bAdmin;
+          return (a.username || '').localeCompare(b.username || '');
+        });
         if (list.length === 0) {
           container.innerHTML = '<div class="empty-state">No role permissions match your search.</div>';
           return;
@@ -760,7 +941,7 @@ export class AppService {
           html += '<tr>' +
             '<td><strong>' + escapeHtml(r.username) + '</strong></td>' +
             '<td><span class="badge ' + (r.role === 'admin' ? 'badge-admin' : 'badge-user') + '">' + escapeHtml(r.role) + '</span></td>' +
-            '<td><div class="pre-text">' + escapeHtml(r.can_perform) + '</div></td>' +
+            '<td><div class="pre-text">' + escapeHtml(r.can_perform || 'Standard Permissions') + '</div></td>' +
           '</tr>';
         });
         html += '</tbody></table>';
@@ -777,6 +958,31 @@ export class AppService {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+
+    function updateThemeUI(theme) {
+      const isLight = theme === 'light';
+      const sun = document.getElementById('themeIconSun');
+      const moon = document.getElementById('themeIconMoon');
+      const text = document.getElementById('themeToggleText');
+      if (sun) sun.style.display = isLight ? 'inline-block' : 'none';
+      if (moon) moon.style.display = isLight ? 'none' : 'inline-block';
+      if (text) text.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem('nestjs_theme', next);
+      } catch (e) {}
+      updateThemeUI(next);
+    }
+
+    // Initialize Theme UI on load (default: light)
+    const savedTheme = localStorage.getItem('nestjs_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeUI(savedTheme);
 
     // Initial Load
     loadAllData();
