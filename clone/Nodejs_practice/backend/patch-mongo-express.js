@@ -1188,6 +1188,137 @@ const darkModeStyles = `
   html.dark-theme #btnResetColSizes .glyphicon {
     color: #ffffff !important;
   }
+
+  /* ========================================================= */
+  /* 6 Live Stat Blocks (Matched with Port 3001)               */
+  /* ========================================================= */
+  .me-stats-row-wrapper {
+    margin-top: 6px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .me-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  @media (max-width: 1200px) {
+    .me-stats-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 12px !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .me-stats-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 10px !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .me-stats-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  .me-stat-card {
+    display: block !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 14px 16px !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+  }
+
+  .me-stat-card::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 3px !important;
+    background: linear-gradient(90deg, #6366f1, #38bdf8) !important;
+    opacity: 0.9 !important;
+  }
+
+  .me-stat-card.me-stat-card-failed::before {
+    background: linear-gradient(90deg, #ef4444, #f87171) !important;
+  }
+
+  .me-stat-card:hover {
+    transform: translateY(-3px) !important;
+    border-color: rgba(99, 102, 241, 0.45) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    text-decoration: none !important;
+  }
+
+  .me-stat-card:focus {
+    text-decoration: none !important;
+    outline: none !important;
+  }
+
+  .me-stat-label {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #64748b !important;
+    margin-bottom: 6px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  }
+
+  .me-stat-value {
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    font-family: 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, monospace !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.02em !important;
+    transition: color 0.2s ease !important;
+  }
+
+  .me-stat-card.me-stat-card-failed .me-stat-value {
+    color: #ef4444 !important;
+  }
+
+  /* --- Dark Theme Adaptations for 6 Stat Blocks --- */
+  html.dark-theme .me-stat-card {
+    background: rgba(18, 24, 38, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+  }
+
+  html.dark-theme .me-stat-card:hover {
+    border-color: rgba(99, 102, 241, 0.55) !important;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45) !important;
+  }
+
+  html.dark-theme .me-stat-label {
+    color: #94a3b8 !important;
+  }
+
+  html.dark-theme .me-stat-value {
+    color: #ffffff !important;
+  }
+
+  html.dark-theme .me-stat-card.me-stat-card-failed .me-stat-value {
+    color: #f87171 !important;
+  }
 `;
 
 const navbarToggleHtml = `
@@ -1242,6 +1373,168 @@ const layoutThemeScript = `
   }
 })();
 </script>`;
+
+// ==========================================
+// 6 Live Stat Blocks (Matched with Port 3001)
+// ==========================================
+
+const statsGridHtml = `
+  <!-- 6 Live Stats Blocks (Total Users -> Failed Actions) -->
+  <div class="row me-stats-row-wrapper" style="margin-top: 6px; margin-bottom: 24px;">
+    <div class="col-md-12">
+      <div class="me-stats-grid">
+        <a href="{{ baseHref }}db/{{ dbName || 'todo-app' }}/users" class="me-stat-card" id="cardTotalUsers" title="View Users Collection">
+          <div class="me-stat-label">Total Users</div>
+          <div class="me-stat-value" id="statUsers">-</div>
+        </a>
+        <a href="{{ baseHref }}db/{{ dbName || 'todo-app' }}/todos" class="me-stat-card" id="cardTotalTodos" title="View Todos Collection">
+          <div class="me-stat-label">Total Todos</div>
+          <div class="me-stat-value" id="statTodos">-</div>
+        </a>
+        <a href="{{ baseHref }}db/{{ dbName || 'todo-app' }}/session_logs" class="me-stat-card" id="cardActiveSessions" title="View Active Sessions">
+          <div class="me-stat-label">Active Sessions</div>
+          <div class="me-stat-value" id="statActiveSessions">-</div>
+        </a>
+        <a href="{{ baseHref }}db/{{ dbName || 'todo-app' }}/session_logs" class="me-stat-card" id="cardSessionLogs" title="View Session Logs">
+          <div class="me-stat-label">Session Logs</div>
+          <div class="me-stat-value" id="statSessions">-</div>
+        </a>
+        <a href="{{ baseHref }}db/{{ dbName || 'todo-app' }}/activity_logs" class="me-stat-card" id="cardAuditActivities" title="View Audit Activities">
+          <div class="me-stat-label">Audit Activities</div>
+          <div class="me-stat-value" id="statActivities">-</div>
+        </a>
+        <a href="{{ baseHref }}db/{{ dbName || 'todo-app' }}/activity_logs" class="me-stat-card me-stat-card-failed" id="cardFailedActions" title="View Failed Actions in Activity Logs">
+          <div class="me-stat-label">Failed Actions</div>
+          <div class="me-stat-value" id="statFailed">-</div>
+        </a>
+      </div>
+    </div>
+  </div>`;
+
+const statsScript = `
+<script type="text/javascript">
+(function () {
+  var isFetching = false;
+  async function fetchMongoStats() {
+    if (isFetching) return;
+    isFetching = true;
+    try {
+      if (document.querySelector('input[name="_csrf"]') || document.querySelector('.card-title')) {
+        var statRow = document.querySelector('.me-stats-row-wrapper');
+        if (statRow) statRow.style.display = 'none';
+        return;
+      }
+
+      var baseEl = document.querySelector('base');
+      var baseHref = (baseEl && baseEl.getAttribute('href')) || '/';
+      if (!baseHref.endsWith('/')) baseHref += '/';
+
+      var stats = null;
+
+      // 1. Try internal Mongo Express stats endpoint
+      try {
+        var res = await fetch(baseHref + 'api/dashboard-stats?t=' + Date.now());
+        if (res.ok) {
+          stats = await res.json();
+        }
+      } catch (e1) {}
+
+      // 2. Fallback to Port 3001 if needed
+      if (!stats || typeof stats.totalUsers === 'undefined') {
+        try {
+          var res3001 = await fetch('http://' + window.location.hostname + ':3001/api/all-data?t=' + Date.now());
+          if (res3001.ok) {
+            var json3001 = await res3001.json();
+            if (json3001 && json3001.stats) {
+              stats = {
+                totalUsers: json3001.stats.totalUsers,
+                totalTodos: json3001.stats.totalTodos,
+                activeSessions: json3001.stats.activeSessions,
+                totalSessions: json3001.stats.totalSessions,
+                totalActivities: json3001.stats.totalActivities,
+                failedActivities: json3001.stats.failedActivities
+              };
+            }
+          }
+        } catch (e2) {}
+      }
+
+      if (stats && typeof stats.totalUsers !== 'undefined') {
+        var elUsers = document.getElementById('statUsers');
+        var elTodos = document.getElementById('statTodos');
+        var elActiveSessions = document.getElementById('statActiveSessions');
+        var elSessions = document.getElementById('statSessions');
+        var elActivities = document.getElementById('statActivities');
+        var elFailed = document.getElementById('statFailed');
+
+        if (elUsers) elUsers.textContent = (stats.totalUsers != null) ? stats.totalUsers : 0;
+        if (elTodos) elTodos.textContent = (stats.totalTodos != null) ? stats.totalTodos : 0;
+        if (elActiveSessions) elActiveSessions.textContent = (stats.activeSessions != null) ? stats.activeSessions : 0;
+        if (elSessions) elSessions.textContent = (stats.totalSessions != null) ? stats.totalSessions : 0;
+        if (elActivities) elActivities.textContent = (stats.totalActivities != null) ? stats.totalActivities : 0;
+        if (elFailed) elFailed.textContent = (stats.failedActivities != null) ? stats.failedActivities : 0;
+      }
+    } catch (err) {
+      // Silently ignore to avoid disrupting any other page actions
+    } finally {
+      isFetching = false;
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fetchMongoStats);
+  } else {
+    fetchMongoStats();
+  }
+  setInterval(fetchMongoStats, 10000);
+})();
+</script>`;
+
+const statsRouteCode = `
+  // Live Dashboard Stats Route (Matched with Port 3001)
+  appRouter.get('/api/dashboard-stats', async function (req, res) {
+    try {
+      const targetDbName = req.query.db || 'todo-app';
+      const conn = (mongo.connections && mongo.connections[targetDbName]) || (mongo.connections && Object.values(mongo.connections)[0]);
+      if (!conn || !conn.db) {
+        return res.json({
+          totalUsers: 0,
+          totalTodos: 0,
+          activeSessions: 0,
+          totalSessions: 0,
+          totalActivities: 0,
+          failedActivities: 0
+        });
+      }
+      const db = conn.db;
+      const [totalUsers, totalTodos, totalSessions, activeSessions, totalActivities, failedActivities] = await Promise.all([
+        db.collection('users').countDocuments().catch(() => 0),
+        db.collection('todos').countDocuments().catch(() => 0),
+        db.collection('session_logs').countDocuments().catch(() => 0),
+        db.collection('session_logs').countDocuments({
+          $or: [
+            { logoutTime: null },
+            { logoutTime: { $exists: false } },
+            { logoutTime: '' },
+            { logoutTime: 'Session in progress' }
+          ]
+        }).catch(() => 0),
+        db.collection('activity_logs').countDocuments().catch(() => 0),
+        db.collection('activity_logs').countDocuments({ status: 'FAILED' }).catch(() => 0)
+      ]);
+      res.json({
+        totalUsers,
+        totalTodos,
+        activeSessions,
+        totalSessions,
+        totalActivities,
+        failedActivities
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+`;
 
 // ==========================================
 // 2. Column Resizer Styles & Scripts for collection.html
@@ -2017,6 +2310,35 @@ mongoExpressDirs.forEach(dir => {
       }
     }
 
+    // 5. Inject 6 Stats Blocks (Just as in Port 3001)
+    const existingStatsRegex = /<!-- 6 Live Stats Blocks[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/;
+    const blockContentRegex = /(<div[^>]*class="row"[^>]*>\s*<div[^>]*class="col-md-12"[^>]*>\s*\{%\s*block\s+content\s*%\})/;
+    const fallbackBlockContentRegex = /(\{%\s*block\s+content\s*%\})/;
+
+    if (existingStatsRegex.test(layout)) {
+      layout = layout.replace(existingStatsRegex, statsGridHtml.trim());
+    } else if (blockContentRegex.test(layout)) {
+      layout = layout.replace(blockContentRegex, statsGridHtml + '\n  $1');
+    } else if (fallbackBlockContentRegex.test(layout)) {
+      layout = layout.replace(fallbackBlockContentRegex, statsGridHtml + '\n  $1');
+    }
+
+    // 6. Inject stats script
+    const existingStatsScriptRegex = /<script type="text\/javascript">\s*\(function\s*\(\)\s*\{\s*var isFetching = false;[\s\S]*?fetchMongoStats[\s\S]*?<\/script>/;
+    if (existingStatsScriptRegex.test(layout)) {
+      layout = layout.replace(existingStatsScriptRegex, statsScript.trim());
+    } else if (!layout.includes('fetchMongoStats()')) {
+      const blockScriptsIdx = layout.indexOf('{% block scripts %}');
+      if (blockScriptsIdx !== -1) {
+        layout = layout.slice(0, blockScriptsIdx) + statsScript + '\n' + layout.slice(blockScriptsIdx);
+      } else {
+        const bodyCloseIdx = layout.indexOf('</body>');
+        if (bodyCloseIdx !== -1) {
+          layout = layout.slice(0, bodyCloseIdx) + statsScript + '\n' + layout.slice(bodyCloseIdx);
+        }
+      }
+    }
+
     fs.writeFileSync(layoutHtmlPath, layout, 'utf8');
     console.log(`Successfully patched layout: ${layoutHtmlPath}`);
   }
@@ -2189,6 +2511,27 @@ mongoExpressDirs.forEach(dir => {
 
     fs.writeFileSync(collectionRoutePath, routeContent, 'utf8');
     console.log(`Successfully patched collection route: ${collectionRoutePath}`);
+  }
+
+  // ==========================================
+  // Patch router.js (Live Stats API Endpoint)
+  // ==========================================
+  const routerJsPath = path.join(dir, 'lib', 'router.js');
+  if (fs.existsSync(routerJsPath)) {
+    let routerContent = fs.readFileSync(routerJsPath, 'utf8');
+    const existingRouteRegex = /\/\/\s*Live Dashboard Stats Route[\s\S]*?appRouter\.get\('\/api\/dashboard-stats'[\s\S]*?\}\);\s*\n/m;
+    if (existingRouteRegex.test(routerContent)) {
+      routerContent = routerContent.replace(existingRouteRegex, statsRouteCode.trim() + '\n\n');
+      fs.writeFileSync(routerJsPath, routerContent, 'utf8');
+      console.log(`Updated stats route in: ${routerJsPath}`);
+    } else if (!routerContent.includes("appRouter.get('/api/dashboard-stats'")) {
+      const returnIdx = routerContent.lastIndexOf('return appRouter;');
+      if (returnIdx !== -1) {
+        routerContent = routerContent.slice(0, returnIdx) + statsRouteCode + '\n  ' + routerContent.slice(returnIdx);
+        fs.writeFileSync(routerJsPath, routerContent, 'utf8');
+        console.log(`Successfully patched router with stats endpoint: ${routerJsPath}`);
+      }
+    }
   }
 
   // ==========================================
